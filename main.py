@@ -14,6 +14,8 @@ CHORD_WIDTH = 0.01
 
 RIGIDITY = 6
 
+CURVE = False
+
 
 class Point():
     def __init__(self, x, y):
@@ -64,7 +66,21 @@ def parse(args):
     if len(args) < 2:
         raise ValueError("Not enough arguments.")
 
-    candidate = args[1:]
+    args = args[1:]
+
+    # Separate flags
+    candidate = []
+    flags = []
+    for a in args:
+        if a[0] == '-':
+            flags.append(a)
+        else:
+            candidate.append(a)
+
+    if '-c' in flags:
+        global CURVE
+        CURVE = True
+
     appearances = {}
     for word in candidate:
         if word not in appearances:
@@ -117,26 +133,36 @@ def main():
 
         p = Point(RADIUS * math.cos(s), RADIUS * math.sin(s))
         q = Point(RADIUS * math.cos(t), RADIUS * math.sin(t))
-        o = Point(0, 0)
-
-        weight = RIGIDITY * (1 + math.cos(2 * (t - s))) / 2
-
-        def weighted_midpoint(a, b, w):
-            return w * a + (1 - w) * b
-
-        p_mid_ctrl = weighted_midpoint(o, p, weight)
-        q_mid_ctrl = weighted_midpoint(o, q, weight)
-
-        p_q_ctrl = p + (q - p) * (abs(p - p_mid_ctrl) / abs(p - q))
-        q_p_ctrl = q + (p - q) * (abs(q - q_mid_ctrl) / abs(q - p))
-
-        p_ctrl = (p_mid_ctrl + p_q_ctrl) / 2
-        q_ctrl = (q_mid_ctrl + q_p_ctrl) / 2
-
         context.set_line_width(CHORD_WIDTH)
-        context.move_to(*p)
-        context.curve_to(*p_ctrl, *q_ctrl, *q)
-        context.stroke()
+
+        if CURVE:
+            # TODO: Make curve via circular arcs.
+
+            o = Point(0, 0)
+
+            weight = RIGIDITY * (1 + math.cos(2 * (t - s))) / 2
+
+            def weighted_midpoint(a, b, w):
+                return w * a + (1 - w) * b
+
+            p_mid_ctrl = weighted_midpoint(o, p, weight)
+            q_mid_ctrl = weighted_midpoint(o, q, weight)
+
+            p_q_ctrl = p + (q - p) * (abs(p - p_mid_ctrl) / abs(p - q))
+            q_p_ctrl = q + (p - q) * (abs(q - q_mid_ctrl) / abs(q - p))
+
+            p_ctrl = (p_mid_ctrl + p_q_ctrl) / 2
+            q_ctrl = (q_mid_ctrl + q_p_ctrl) / 2
+
+            context.move_to(*p)
+            context.curve_to(*p_ctrl, *q_ctrl, *q)
+            context.stroke()
+
+        if not CURVE:
+
+            context.move_to(*p)
+            context.line_to(*q)
+            context.stroke()
 
         # ...and nodes.
         context.arc(*p, NODE_RADIUS, 0, 2 * math.pi)
